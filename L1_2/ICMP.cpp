@@ -114,7 +114,12 @@ DWORD WINAPI Tracert(LPVOID params)
 	char message[BUFFER_SIZE];
 	memset(message, 0, sizeof(message));
 	//sprintf_s(message, "Tracing route to %s [%s]\n with the maximum number of hops: %d\n", host, ip, MAX_HOP);
-	std::cout << "Tracing route to " << host << "[" << ip << "]\n with the maximum number of hops: "<< MAX_HOP <<"\n" << std::endl;
+	if (!isPing) {
+		std::cout << "Tracing route to " << host << "[" << ip << "]\n with the maximum number of hops: " << MAX_HOP << "\n" << std::endl;
+	}
+	else {
+		std::cout << "Pinging " << host << "[" << ip << "]: " << std::endl;
+	}
 
 	SOCKET s;
 	sockaddr_in destAddr;
@@ -175,11 +180,9 @@ DWORD WINAPI Tracert(LPVOID params)
 			FD_SET(s, &fdRead);
 
 			result = select(0, &fdRead, nullptr, nullptr, &selectTime);
-			std::cout << "Result got" << endl;
 			if (result == SOCKET_ERROR)
 			{
 				closesocket(s);
-				cerr << "\nselect() " << WSAGetLastError() << endl;
 				std::cout << "\nselect() " << WSAGetLastError() << endl;
 				return false;
 			}
@@ -209,7 +212,6 @@ DWORD WINAPI Tracert(LPVOID params)
 				}
 				long time = recvTickCount - sendTickCount;
 				timings[nHop + nRetries] = time;
-				std::cout << "\nrecvfrom() " << WSAGetLastError() << endl;
 				if (isPing) {
 					m.lock();
 					outputPing(host, time, ttl);
@@ -221,13 +223,11 @@ DWORD WINAPI Tracert(LPVOID params)
 
 		if (bResponse)
 		{
-			std::cout << "\nrecvfrom() " << WSAGetLastError() << endl;
 			in_addr ipAdd = recvAddr.sin_addr;
 			
 			char sourceIp[IP_LEN] = { 0 };
 			inet_ntop(AF_INET, &ipAdd, sourceIp, IP_LEN);
 			strcpy(resultHosts[nHop], sourceIp);
-
 
 
 			if (recvICMP->type == ICMP_ECHO_REPLY)
@@ -241,7 +241,6 @@ DWORD WINAPI Tracert(LPVOID params)
 		}	
 		
 	}
-	std::cout << "TEST" << endl;
 	if(!isPing){
 		m.lock();
 		output(message);
